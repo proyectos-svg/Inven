@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Coil Pro</title>
-    
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     
     <style>
         :root {
@@ -29,7 +28,7 @@
         .btn-config { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
         .btn-delete-small { background: #fee2e2; color: #dc2626; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-        /* Estilo del contenedor de la cámara */
+        /* Contenedor del Escáner */
         #reader { width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid var(--scan); margin-bottom: 15px; display: none; background: #000; }
 
         .inv-item { background: var(--card); border-radius: 12px; margin-bottom: 8px; border: 1px solid #e5e7eb; overflow: hidden; }
@@ -55,8 +54,7 @@
             <button class="btn-config" onclick="showPage('page-config')">⚙️</button>
         </header>
 
-        <button class="btn-main btn-scan" onclick="toggleScanner()">📷 ABRIR ESCÁNER</button>
-        
+        <button class="btn-main btn-scan" onclick="toggleScanner()">📷 ESCANEAR QR</button>
         <div id="reader"></div>
 
         <div class="field">
@@ -86,6 +84,7 @@
             <button class="btn-config" onclick="showPage('page-main')">⬅️</button>
             <h2 style="margin:0; font-size: 1.1rem;">Ajustes</h2>
         </header>
+
         <div class="config-section">
             <label>Calibres (Ancho)</label>
             <div style="display:flex; gap:5px; margin-bottom:10px;">
@@ -94,6 +93,7 @@
             </div>
             <div id="list-calibres"></div>
         </div>
+
         <div class="config-section">
             <label>Familias</label>
             <input type="text" id="new-fam-name" placeholder="Nombre (B23Q090)" style="margin-bottom:8px;">
@@ -101,6 +101,7 @@
             <button class="btn-main" onclick="addFamilia()" style="margin-top:0;">+ GUARDAR FAMILIA</button>
             <div id="list-familias" style="margin-top:10px;"></div>
         </div>
+
         <button class="btn-main" onclick="descargarExcel()" style="background:var(--success)">📊 EXPORTAR EXCEL</button>
     </div>
 </div>
@@ -120,32 +121,18 @@
     // --- LÓGICA DEL ESCÁNER ---
     async function toggleScanner() {
         const readerDiv = document.getElementById('reader');
-        
-        // Si ya está escaneando, lo cerramos
-        if (html5QrCode && html5QrCode.isScanning) {
+        if (readerDiv.style.display === 'none') {
+            readerDiv.style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            const qrConfig = { fps: 10, qrbox: { width: 250, height: 150 } };
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, qrConfig, onScanSuccess);
+            } catch (err) {
+                alert("Error cámara: " + err);
+                readerDiv.style.display = 'none';
+            }
+        } else {
             stopScanner();
-            return;
-        }
-
-        readerDiv.style.display = 'block';
-        html5QrCode = new Html5Qrcode("reader");
-
-        const qrConfig = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.0
-        };
-
-        try {
-            await html5QrCode.start(
-                { facingMode: "environment" }, 
-                qrConfig, 
-                onScanSuccess
-            );
-        } catch (err) {
-            console.error(err);
-            alert("No se pudo abrir la cámara. Asegúrate de dar permisos y usar HTTPS.\nError: " + err);
-            readerDiv.style.display = 'none';
         }
     }
 
@@ -153,25 +140,22 @@
         if (html5QrCode) {
             html5QrCode.stop().then(() => {
                 document.getElementById('reader').style.display = 'none';
-            }).catch(err => console.log("Error al detener:", err));
+            }).catch(() => {
+                document.getElementById('reader').style.display = 'none';
+            });
         }
     }
 
     function onScanSuccess(decodedText) {
         const t = decodedText.trim().toUpperCase();
-        
-        // Validación de longitud según tus posiciones (0-7, 7-11, 11-19) -> Mínimo 19 caracteres
-        if (t.length < 19) {
-            alert("Código demasiado corto: " + t);
-            return;
-        }
+        // Validación de longitud mínima basada en posiciones 0-19
+        if (t.length < 19) return alert("Código no válido (muy corto)");
 
-        // EXTRACCIÓN POR POSICIONES FIJAS
-        const cal = t.substring(0, 7).trim();       // Acero: Posición 0 a 7
-        const qty = parseFloat(t.substring(7, 11)); // Cantidad: Posición 7 a 11
-        const fam = t.substring(11, 19).trim();     // Familia: Posición 11 a 19
+        // Extracción por posiciones fijas
+        const cal = t.substring(0, 7).trim();       // Posición 0, 7
+        const qty = parseFloat(t.substring(7, 11)); // Posición 7, 11
+        const fam = t.substring(11, 19).trim();     // Posición 11, 19
 
-        // Verificar si existen en la configuración
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
 
@@ -179,18 +163,15 @@
             document.getElementById('main-calibre').value = cal;
             document.getElementById('main-familia').value = fam;
             document.getElementById('main-qty').value = qty;
-            
             updatePreview();
             stopScanner();
-            
             if (window.navigator.vibrate) window.navigator.vibrate(100);
-            alert("¡Lectura exitosa!");
         } else {
-            alert(`Error: Datos no registrados en Ajustes.\nCalibre: ${cal} (${calOk?'Válido':'No existe'})\nFamilia: ${fam} (${famOk?'Válida':'No existe'})`);
+            alert(`No coincide con la configuración:\nCal: ${cal} (${calOk?'OK':'NO'})\nFam: ${fam} (${famOk?'OK':'NO'})`);
         }
     }
 
-    // --- FUNCIONES DE NEGOCIO (IGUALES A LAS ANTERIORES) ---
+    // --- LÓGICA DE NEGOCIO ---
     function updatePreview() {
         const c = document.getElementById('main-calibre').value;
         const fName = document.getElementById('main-familia').value;
@@ -260,7 +241,7 @@
     }
 
     function limpiarTodo() {
-        if(confirm("⚠️ ¿BORRAR TODO EL INVENTARIO?")) { 
+        if(confirm("⚠️ ¿ESTÁS SEGURO?")) { 
             inventory = []; 
             localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
             render(); 
@@ -320,11 +301,23 @@
 
     function descargarExcel() {
         if (inventory.length === 0) return alert("Sin datos.");
-        const ws_data = [["REPORTE COIL"],["FECHA:", new Date().toLocaleDateString()],[],["CALIBRE", "FAMILIA", "DESCRIPCIÓN", "PESO (LBS)"]];
-        inventory.forEach(r => ws_data.push([r.calibre, r.familia, r.tag, r.qty.toFixed(2)]));
+        const gruposCalibre = inventory.reduce((acc, r) => { acc[r.calibre] = (acc[r.calibre] || 0) + r.qty; return acc; }, {});
+        const gruposEtiqueta = inventory.reduce((acc, r) => {
+            if (!acc[r.tag]) acc[r.tag] = { calibre: r.calibre, qty: 0 };
+            acc[r.tag].qty += r.qty;
+            return acc;
+        }, {});
+
+        let ws_data = [["REPORTE COIL", "", ""],["", "FECHA:", new Date().toLocaleDateString()],[],["RESUMEN", "", ""],["CALIBRE", "LBS", ""]];
+        Object.keys(gruposCalibre).sort((a,b)=>b-a).forEach(cal => ws_data.push([cal, gruposCalibre[cal].toFixed(2), ""]));
+        ws_data.push([], ["DETALLE"], ["CALIBRE", "DESCRIPCIÓN", "LBS SUMADAS"]);
+        Object.keys(gruposEtiqueta).sort((a, b) => parseFloat(gruposEtiqueta[b].calibre) - parseFloat(gruposEtiqueta[a].calibre)).forEach(tag => {
+            ws_data.push([gruposEtiqueta[tag].calibre, tag, gruposEtiqueta[tag].qty.toFixed(2)]);
+        });
+
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data");
+        XLSX.utils.book_append_sheet(wb, ws, "Inventario");
         XLSX.writeFile(wb, `Reporte_Coil_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
