@@ -103,10 +103,10 @@
             return;
         }
 
-        // Extracción (mantenemos las posiciones 0-6, 6-11, 11-final)
+        // Extracción (mantenemos las posiciones 0-6, 6-10, 10-final)
         const cal = t.substring(0, 6).trim();
-        const qty = parseFloat(t.substring(6, 11));
-        const fam = t.substring(11).trim(); // Toma desde la 11 hasta el final aunque sea corto
+        const qty = parseFloat(t.substring(6, 10));
+        const fam = t.substring(10).trim(); // Toma desde la 10 hasta el final aunque sea corto
 
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
