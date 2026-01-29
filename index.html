@@ -1,76 +1,119 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2563eb">
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2982/2982683.png">
-
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Coil Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2982/2982683.png">
+
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
     <style>
-        :root { --primary: #2563eb; --bg: #f3f4f6; --card: #ffffff; --text: #1f2937; --danger: #ef4444; --success: #218838; --scan: #059669; }
+        :root {
+            --primary: #2563eb; --bg: #f3f4f6; --card: #ffffff;
+            --text: #1f2937; --danger: #ef4444; --success: #218838; --scan: #059669;
+        }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .app-card { background: white; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; }
+        
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .page { display: none; width: 100%; }
         .page.active { display: block; }
+
         .field { margin-bottom: 12px; }
         label { display: block; font-size: 0.7rem; font-weight: 800; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
         select, input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 16px; box-sizing: border-box; background: white; }
+
         .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-scan { background: var(--scan); margin-bottom: 10px; }
-        .btn-stop { background: var(--danger); font-size: 0.8rem; padding: 8px; margin-bottom: 10px; }
+        .btn-stop { background: var(--danger); font-size: 0.8rem; padding: 8px; margin-bottom: 15px; }
+        .btn-config { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        
         #reader { width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid var(--scan); margin-bottom: 15px; display: none; background: #000; }
-        .config-section { background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #e2e8f0; }
-        .list-item-conf { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
-        .btn-delete-small { background: #fee2e2; color: #dc2626; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; }
+
         .inv-item { background: var(--card); border-radius: 12px; margin-bottom: 8px; border: 1px solid #e5e7eb; overflow: hidden; }
         .inv-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .inv-details { max-height: 0; background: #f9fafb; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .inv-item.open .inv-details { max-height: 2000px; border-top: 1px solid #eee; }
-        .detail-row { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.85rem; position: relative; }
+        .badge-total { color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; }
+        
+        .detail-row { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.85rem; position: relative; padding-right: 50px; }
+        .btn-delete-row { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #fee2e2; color: #dc2626; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; }
+        
+        .config-section { background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #e2e8f0; }
+        .list-item-conf { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
+
 <div class="app-card">
     <div id="page-main" class="page active">
-        <header><h2>📦 Coil Inventario</h2><button onclick="showPage('page-config')" style="background:none; border:none; font-size:1.5rem;">⚙️</button></header>
-        <button id="btn-open" class="btn-main btn-scan" onclick="startScanner()">📷 ESCANEAR QR</button>
-        <button id="btn-close" class="btn-main btn-stop" onclick="stopScanner()" style="display:none;">✕ CERRAR CÁMARA</button>
+        <header>
+            <h2 style="margin:0; font-size: 1.1rem;">📦 Inventario Coil</h2>
+            <button class="btn-config" onclick="showPage('page-config')">⚙️</button>
+        </header>
+
+        <button id="btn-open-cam" class="btn-main btn-scan" onclick="startScanner()">📷 ESCANEAR QR</button>
+        <button id="btn-close-cam" class="btn-main btn-stop" onclick="stopScanner()" style="display:none;">✕ DETENER CÁMARA</button>
+        
         <div id="reader"></div>
-        <div class="field"><label>Calibre</label><select id="main-calibre" onchange="updatePreview()"></select></div>
-        <div class="field"><label>Familia</label><select id="main-familia" onchange="updatePreview()"></select></div>
+
+        <div class="field">
+            <label>Calibre (Ancho)</label>
+            <select id="main-calibre" onchange="updatePreview()"></select>
+        </div>
+        <div class="field">
+            <label>Familia</label>
+            <select id="main-familia" onchange="updatePreview()"></select>
+        </div>
         <div id="preview" style="background:#eef2ff; padding:10px; border-radius:8px; margin-bottom:10px; font-family:monospace; font-size:0.8rem; text-align:center; font-weight:bold; color: var(--primary);"> - </div>
-        <div class="field"><label>Cantidad (Lbs)</label><input type="number" id="main-qty" placeholder="0.00" inputmode="decimal"></div>
-        <button class="btn-main" onclick="agregar()">REGISTRAR</button>
-        <div id="contenedorPrincipal" style="margin-top:20px;"></div>
+        <div class="field">
+            <label>Cantidad (Lbs)</label>
+            <input type="number" id="main-qty" placeholder="0.00" inputmode="decimal">
+        </div>
+        <button class="btn-main" onclick="agregar()">REGISTRAR MATERIAL</button>
+
+        <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+        <div id="contenedorPrincipal"></div>
+        <button class="btn-main" onclick="limpiarTodo()" style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:20px; font-size:0.8rem; opacity:0.7;">🗑️ VACIAR INVENTARIO</button>
     </div>
 
     <div id="page-config" class="page">
-        <header><button onclick="showPage('page-main')">⬅️ Volver</button><h2>Ajustes</h2></header>
+        <header>
+            <button class="btn-config" onclick="showPage('page-main')">⬅️</button>
+            <h2 style="margin:0; font-size: 1.1rem;">Ajustes</h2>
+        </header>
+
         <div class="config-section">
             <label>Nuevo Calibre</label>
-            <div style="display:flex; gap:5px;"><input type="text" id="new-cal" placeholder="13.400"><button onclick="addCalibre()" style="background:var(--primary); color:white; border:none; padding:10px; border-radius:8px;">+</button></div>
+            <div style="display:flex; gap:5px;"><input type="number" step="0.001" id="new-cal" placeholder="13.400"><button onclick="addCalibre()" style="background:var(--primary); color:white; border:none; padding:10px; border-radius:8px;">+</button></div>
             <div id="list-calibres"></div>
         </div>
+
         <div class="config-section">
             <label>Nueva Familia</label>
-            <input type="text" id="new-fam-name" placeholder="Nombre" style="margin-bottom:5px;">
-            <input type="number" id="new-fam-thick" step="0.0001" placeholder="Grosor (0.0091)">
-            <button class="btn-main" onclick="addFamilia()">GUARDAR FAMILIA</button>
-            <div id="list-familias"></div>
+            <input type="text" id="new-fam-name" placeholder="Nombre (B23Q090)" style="margin-bottom:8px;">
+            <input type="number" id="new-fam-thick" step="0.0001" placeholder="Thickness (0.0091)">
+            <button class="btn-main" onclick="addFamilia()">+ GUARDAR</button>
+            <div id="list-familias" style="margin-top:10px;"></div>
         </div>
+
         <button class="btn-main" onclick="descargarExcel()" style="background:var(--success)">📊 EXPORTAR EXCEL</button>
     </div>
 </div>
 
 <script>
-    // Recuperar datos con nombres de llaves originales para no perder nada
-    let config = JSON.parse(localStorage.getItem('coil_conf_v3')) || { calibres: [], familias: [] };
+    // --- 3. REGISTRO DE INSTALACIÓN (SERVICE WORKER) ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+        });
+    }
+
+    // --- 4. CARGA DE DATOS ---
+    let config = JSON.parse(localStorage.getItem('coil_conf_v3')) || { calibres: ['13.400'], familias: [{n:'B23Q090', t:0.0091}] };
     let inventory = JSON.parse(localStorage.getItem('coil_data_v3')) || [];
     let html5QrCode;
 
@@ -81,37 +124,31 @@
         render();
     }
 
+    // --- 5. LÓGICA DE CÁMARA ---
     async function startScanner() {
-        const readerDiv = document.getElementById('reader');
-        document.getElementById('btn-open').style.display = 'none';
-        document.getElementById('btn-close').style.display = 'block';
-        readerDiv.style.display = 'block';
+        document.getElementById('btn-open-cam').style.display = 'none';
+        document.getElementById('btn-close-cam').style.display = 'block';
+        document.getElementById('reader').style.display = 'block';
         html5QrCode = new Html5Qrcode("reader");
         try {
             await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
-        } catch (err) { alert("Error cámara: " + err); stopScanner(); }
+        } catch (err) { alert("Error cámara"); stopScanner(); }
     }
 
     async function stopScanner() {
         if (html5QrCode) { try { await html5QrCode.stop(); await html5QrCode.clear(); } catch(e){} }
         document.getElementById('reader').style.display = 'none';
-        document.getElementById('btn-open').style.display = 'block';
-        document.getElementById('btn-close').style.display = 'none';
+        document.getElementById('btn-open-cam').style.display = 'block';
+        document.getElementById('btn-close-cam').style.display = 'none';
     }
 
     function onScanSuccess(decodedText) {
         const t = decodedText.trim().toUpperCase();
-        
-        // CORRECCIÓN: Ahora aceptamos códigos desde 12 caracteres
-        if (t.length < 12) {
-            alert("Código demasiado corto: " + t);
-            return;
-        }
+        if (t.length < 12) return; // Ignora códigos ruidosos
 
-        // Extracción (mantenemos las posiciones 0-6, 6-10, 10-final)
         const cal = t.substring(0, 6).trim();
         const qty = parseFloat(t.substring(6, 10));
-        const fam = t.substring(10).trim(); // Toma desde la 10 hasta el final aunque sea corto
+        const fam = t.substring(10).trim();
 
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
@@ -124,29 +161,11 @@
             stopScanner();
             if (window.navigator.vibrate) window.navigator.vibrate(100);
         } else {
-            // Este mensaje ayuda a saber qué está fallando
-            alert(`QR detectado: \nCalibre: ${cal} (${calOk?'OK':'Falta en ajustes'})\nCant: ${qty}\nFamilia: ${fam} (${famOk?'OK':'Falta en ajustes'})`);
+            alert(`No registrado:\nCal: ${cal}\nFam: ${fam}`);
         }
     }
 
-    // AJUSTES
-    function addCalibre() {
-        const v = document.getElementById('new-cal').value.trim();
-        if(v && !config.calibres.includes(v)) { config.calibres.push(v); save(); }
-    }
-    function addFamilia() {
-        const n = document.getElementById('new-fam-name').value.trim().toUpperCase();
-        const t = parseFloat(document.getElementById('new-fam-thick').value);
-        if(n && !isNaN(t)) { config.familias.push({n, t}); save(); }
-    }
-    function save() { 
-        localStorage.setItem('coil_conf_v3', JSON.stringify(config)); 
-        render(); 
-    }
-    function removeCal(i) { config.calibres.splice(i,1); save(); }
-    function removeFam(i) { config.familias.splice(i,1); save(); }
-
-    // INVENTARIO
+    // --- 6. FUNCIONES DE INVENTARIO ---
     function updatePreview() {
         const c = document.getElementById('main-calibre').value;
         const f = config.familias.find(fam => fam.n === document.getElementById('main-familia').value);
@@ -157,19 +176,51 @@
         const c = document.getElementById('main-calibre').value;
         const f = document.getElementById('main-familia').value;
         const q = parseFloat(document.getElementById('main-qty').value);
-        if(!c || !f || isNaN(q)) return alert("Faltan datos");
+        if(!c || !f || isNaN(q)) return alert("Datos incompletos");
         const fObj = config.familias.find(fam => fam.n === f);
         inventory.unshift({ id: Date.now(), calibre: c, familia: f, tag: `${fObj.t} x ${c} x COIL`, qty: q });
         localStorage.setItem('coil_data_v3', JSON.stringify(inventory));
+        document.getElementById('main-qty').value = "";
         render();
     }
 
+    function borrarRegistro(id) {
+        if(confirm("¿Eliminar?")) { 
+            inventory = inventory.filter(i => i.id !== id); 
+            localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
+            render(); 
+        }
+    }
+
+    function limpiarTodo() {
+        if(confirm("⚠️ ¿Borrar TODO?")) { inventory = []; localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); render(); }
+    }
+
+    // --- 7. AJUSTES ---
+    function addCalibre() {
+        const v = document.getElementById('new-cal').value.trim();
+        if(v && !config.calibres.includes(v)) { config.calibres.push(v); save(); }
+    }
+    function addFamilia() {
+        const n = document.getElementById('new-fam-name').value.trim().toUpperCase();
+        const t = parseFloat(document.getElementById('new-fam-thick').value);
+        if(n && !isNaN(t)) { config.familias.push({n, t}); save(); }
+    }
+    function save() { 
+        config.calibres.sort((a,b) => b-a);
+        localStorage.setItem('coil_conf_v3', JSON.stringify(config)); 
+        render(); 
+    }
+    function removeCal(idx) { config.calibres.splice(idx, 1); save(); }
+    function removeFam(idx) { config.familias.splice(idx, 1); save(); }
+
     function render() {
-        document.getElementById('main-calibre').innerHTML = config.calibres.map(c => `<option value="${c}">${c}</option>`).join('');
+        const calSorted = [...config.calibres].sort((a,b)=>b-a);
+        document.getElementById('main-calibre').innerHTML = calSorted.map(c => `<option value="${c}">${c}</option>`).join('');
         document.getElementById('main-familia').innerHTML = config.familias.map(f => `<option value="${f.n}">${f.n}</option>`).join('');
         
-        document.getElementById('list-calibres').innerHTML = config.calibres.map((c, i) => `<div class="list-item-conf">${c} <button class="btn-delete-small" onclick="removeCal(${i})">✕</button></div>`).join('');
-        document.getElementById('list-familias').innerHTML = config.familias.map((f, i) => `<div class="list-item-conf">${f.n} <button class="btn-delete-small" onclick="removeFam(${i})">✕</button></div>`).join('');
+        document.getElementById('list-calibres').innerHTML = calSorted.map((c, i) => `<div class="list-item-conf">${c} <button onclick="removeCal(${i})" class="btn-delete-small">✕</button></div>`).join('');
+        document.getElementById('list-familias').innerHTML = config.familias.map((f, i) => `<div class="list-item-conf">${f.n} (${f.t}) <button onclick="removeFam(${i})" class="btn-delete-small">✕</button></div>`).join('');
 
         const container = document.getElementById('contenedorPrincipal');
         container.innerHTML = "";
@@ -180,12 +231,14 @@
         }, {});
 
         Object.keys(grupos).sort((a,b)=>b-a).forEach(cal => {
-            const safeId = "group-" + cal.replace(/\./g, '-');
+            const safeId = "group-" + cal.toString().replace(/\./g, '-');
             const div = document.createElement("div");
             div.className = "inv-item";
             div.id = safeId;
-            div.innerHTML = `<div class="inv-header" onclick="document.getElementById('${safeId}').classList.toggle('open')"><b>Ancho: ${cal}</b> <span>${grupos[cal].p.toFixed(2)} lbs</span></div>
-            <div class="inv-details">${grupos[cal].items.map(r => `<div class="detail-row">${r.familia}: ${r.qty} lbs</div>`).join('')}</div>`;
+            div.innerHTML = `<div class="inv-header" onclick="document.getElementById('${safeId}').classList.toggle('open')">
+                <b>Ancho: ${cal}</b> <span class="badge-total" style="background:var(--primary)">${grupos[cal].p.toFixed(2)} lbs</span>
+            </div>
+            <div class="inv-details">${grupos[cal].items.map(r => `<div class="detail-row"><b>${r.familia}</b>: ${r.qty.toFixed(2)} lbs<br><small>${r.tag}</small><button class="btn-delete-row" onclick="event.stopPropagation(); borrarRegistro(${r.id})">✕</button></div>`).join('')}</div>`;
             container.appendChild(div);
         });
     }
@@ -193,7 +246,7 @@
     function descargarExcel() {
         const ws = XLSX.utils.json_to_sheet(inventory);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+        XLSX.utils.book_append_sheet(wb, ws, "Data");
         XLSX.writeFile(wb, "Reporte_Coil.xlsx");
     }
 
