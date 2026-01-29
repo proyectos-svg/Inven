@@ -1,0 +1,17 @@
+{
+  "name": "Inventario Coil Pro",
+  "short_name": "CoilPro",
+  "description": "Sistema de gestión de inventario de acero",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2982/2982683.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
