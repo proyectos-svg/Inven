@@ -146,9 +146,9 @@
         const t = decodedText.trim().toUpperCase();
         if (t.length < 12) return; // Ignora códigos ruidosos
 
-        const cal = t.substring(0, 6).trim();
-        const qty = parseFloat(t.substring(6, 10));
-        const fam = t.substring(10).trim();
+        const cal = t.substring(0, 5).trim();
+        const qty = parseFloat(t.substring(5, 9));
+        const fam = t.substring(9).trim();
 
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
