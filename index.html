@@ -142,28 +142,50 @@
         document.getElementById('btn-close-cam').style.display = 'none';
     }
 
-    function onScanSuccess(decodedText) {
+        function onScanSuccess(decodedText) {
         const t = decodedText.trim().toUpperCase();
-        if (t.length < 12) return; // Ignora códigos ruidosos
+        
+        // Verificamos que el código tenga al menos la longitud necesaria (5+4 = 9 mínimo)
+        if (t.length < 10) {
+            alert("Código demasiado corto para el nuevo formato: " + t);
+            return;
+        }
 
+        // 1. Extraer Calibre (Posiciones 0 a 5)
         const cal = t.substring(0, 5).trim();
-        const qty = parseFloat(t.substring(5, 9));
+
+        // 2. Extraer Cantidad (Posiciones 5 a 9)
+        // Usamos replace para dejar solo números y puntos por si hay ruido en el QR
+        const qtyRaw = t.substring(5, 9).replace(/[^0-9.]/g, '');
+        const qty = parseFloat(qtyRaw);
+
+        // 3. Extraer Familia (Desde la posición 9 hasta el final)
         const fam = t.substring(9).trim();
 
+        // VALIDACIÓN DE DATOS
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
 
-        if (famOk && calOk) {
+        if (famOk && calOk && !isNaN(qty)) {
             document.getElementById('main-calibre').value = cal;
             document.getElementById('main-familia').value = fam;
             document.getElementById('main-qty').value = qty;
+            
             updatePreview();
             stopScanner();
+            
+            // Vibración de éxito
             if (window.navigator.vibrate) window.navigator.vibrate(100);
         } else {
-            alert(`No registrado:\nCal: ${cal}\nFam: ${fam}`);
+            // Mensaje de error detallado para saber qué falló
+            let errorMsg = `Error de reconocimiento:\n`;
+            errorMsg += `- Calibre: ${cal} (${calOk ? 'OK' : 'No existe en Ajustes'})\n`;
+            errorMsg += `- Cantidad: ${qtyRaw} (${isNaN(qty) ? 'Error numérico' : 'OK'})\n`;
+            errorMsg += `- Familia: ${fam} (${famOk ? 'OK' : 'No existe en Ajustes'})`;
+            alert(errorMsg);
         }
     }
+
 
     // --- 6. FUNCIONES DE INVENTARIO ---
     function updatePreview() {
