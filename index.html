@@ -147,8 +147,8 @@
         if (t.length < 12) return; // Ignora códigos ruidosos
 
         const cal = t.substring(0, 5).trim();
-        const qty = parseFloat(t.substring(5, 9));
-        const fam = t.substring(9).trim();
+        const qty = parseFloat(t.substring(7, 11));
+        const fam = t.substring(11).trim();
 
         const famOk = config.familias.find(f => f.n === fam);
         const calOk = config.calibres.includes(cal);
