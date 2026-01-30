@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventario Coil Pro + QR</title>
+    <title>Inventario Coil Pro + QR v4</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     
@@ -25,19 +25,24 @@
 
         .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-config { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-        
-        /* Botón QR */
-        .btn-qr { position: absolute; right: 5px; top: 24px; background: #333; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; z-index: 5; }
-        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-bottom: 15px; display: none; }
+        .btn-delete-small { background: #fee2e2; color: #dc2626; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
+        /* QR Scanner */
+        .btn-qr { position: absolute; right: 5px; top: 24px; background: #333; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; z-index: 5; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 15px; display: none; border: 2px solid var(--primary); }
+
+        /* Tarjetas de Inventario */
         .inv-item { background: var(--card); border-radius: 12px; margin-bottom: 8px; border: 1px solid #e5e7eb; overflow: hidden; }
         .inv-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .inv-details { max-height: 0; background: #f9fafb; overflow: hidden; transition: max-height 0.3s ease-out; }
         .inv-item.open .inv-details { max-height: 2000px; border-top: 1px solid #eee; }
 
         .detail-row { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; position: relative; padding-right: 50px; }
-        .btn-delete-row { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #fee2e2; color: #dc2626; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; }
+        .btn-delete-row { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #fee2e2; color: #dc2626; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; }
         .badge-total { color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; }
+        
+        .config-section { background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #e2e8f0; }
+        .list-item-conf { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -59,18 +64,19 @@
             <label>Familia</label>
             <select id="main-familia" onchange="saveLastSelection(); updatePreview();"></select>
         </div>
-        
         <div id="preview" style="background:#eef2ff; padding:10px; border-radius:8px; margin-bottom:10px; font-family:monospace; font-size:0.8rem; text-align:center; font-weight:bold; color: var(--primary);"> - </div>
-        
         <div class="field">
             <label>Cantidad (Lbs)</label>
             <input type="number" id="main-qty" placeholder="0.00" inputmode="decimal">
             <button class="btn-qr" onclick="toggleScanner()">📷 QR</button>
         </div>
-
         <button class="btn-main" onclick="agregar()">REGISTRAR MATERIAL</button>
+
         <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+        
         <div id="contenedorPrincipal"></div>
+
+        <button class="btn-main" onclick="limpiarTodo()" style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:20px; font-size:0.8rem; opacity:0.7;">🗑️ VACIAR TODO EL INVENTARIO</button>
     </div>
 
     <div id="page-config" class="page">
@@ -78,6 +84,24 @@
             <button class="btn-config" onclick="showPage('page-main')">⬅️</button>
             <h2 style="margin:0; font-size: 1.1rem;">Ajustes</h2>
         </header>
+
+        <div class="config-section">
+            <label>Calibres (Ancho)</label>
+            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <input type="number" step="0.001" id="new-cal" placeholder="Ej: 13.400">
+                <button onclick="addCalibre()" style="padding:10px; border-radius:8px; border:none; background:var(--primary); color:white; width:50px;">+</button>
+            </div>
+            <div id="list-calibres"></div>
+        </div>
+
+        <div class="config-section">
+            <label>Familias</label>
+            <input type="text" id="new-fam-name" placeholder="Nombre (B23Q090)" style="margin-bottom:8px;">
+            <input type="number" id="new-fam-thick" step="0.0001" placeholder="Thickness (0.0091)" style="margin-bottom:8px;">
+            <button class="btn-main" onclick="addFamilia()" style="margin-top:0;">+ GUARDAR FAMILIA</button>
+            <div id="list-familias" style="margin-top:10px;"></div>
+        </div>
+
         <button class="btn-main" onclick="descargarExcel()" style="background:var(--success)">📊 EXPORTAR EXCEL</button>
     </div>
 </div>
@@ -88,7 +112,13 @@
     let lastSelection = JSON.parse(localStorage.getItem('coil_last_sel')) || { calibre: '', familia: '' };
     let html5QrCode;
 
-    // --- LÓGICA DEL ESCÁNER ---
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        render();
+    }
+
+    // --- ESCANER QR ---
     function toggleScanner() {
         const readerDiv = document.getElementById('reader');
         if (readerDiv.style.display === 'block') {
@@ -105,40 +135,34 @@
     }
 
     function onScanSuccess(decodedText) {
-        // Ejemplo: 13.4009999B23P090
         try {
-            const acero = decodedText.substring(0, 6);      // "13.400"
-            const cantidad = decodedText.substring(6, 10);  // "9999"
-            const familia = decodedText.substring(10);      // "B23P090"
+            // Formato esperado: 13.4009999B23P090
+            const acero = decodedText.substring(0, 6);
+            const cantidad = decodedText.substring(6, 10);
+            const familia = decodedText.substring(10);
 
-            // 1. Verificar si el calibre existe, si no, agregarlo
+            // Seleccionar o agregar calibre
             if(!config.calibres.includes(acero)) {
                 config.calibres.push(acero);
                 saveConfig();
             }
             document.getElementById('main-calibre').value = acero;
 
-            // 2. Verificar si la familia existe (si no existe, avisar o usar una por defecto)
-            const famExistente = config.familias.find(f => f.n === familia);
-            if(famExistente) {
+            // Seleccionar familia si existe
+            const famObj = config.familias.find(f => f.n === familia);
+            if(famObj) {
                 document.getElementById('main-familia').value = familia;
             } else {
-                alert(`Familia ${familia} no encontrada en Ajustes. Por favor agrégala.`);
+                alert(`La familia ${familia} no existe en configuración. Regístrala primero.`);
             }
 
-            // 3. Asignar cantidad
             document.getElementById('main-qty').value = parseFloat(cantidad);
-
+            
             saveLastSelection();
             updatePreview();
             stopScanner();
-            
-            // Feedback visual
-            document.getElementById('main-qty').style.backgroundColor = "#dcfce7";
-            setTimeout(() => document.getElementById('main-qty').style.backgroundColor = "white", 1000);
-
         } catch (e) {
-            alert("Error al procesar el código: Formato inválido");
+            alert("Error procesando QR: Formato no reconocido.");
         }
     }
 
@@ -150,8 +174,7 @@
         }
     }
 
-    // --- FUNCIONES DE PERSISTENCIA Y RENDER (Basadas en tu versión anterior) ---
-
+    // --- CONFIGURACIÓN ---
     function saveLastSelection() {
         lastSelection = {
             calibre: document.getElementById('main-calibre').value,
@@ -167,6 +190,47 @@
         document.getElementById('preview').innerText = (fObj && c) ? `${fObj.t} x ${c} x COIL` : '-';
     }
 
+    function addCalibre() {
+        const val = document.getElementById('new-cal').value.trim();
+        if(val && !config.calibres.includes(val)) { 
+            config.calibres.push(val); 
+            document.getElementById('new-cal').value = ''; 
+            saveConfig(); 
+        }
+    }
+
+    function removeCalibre(index) {
+        if(confirm("¿Eliminar calibre?")) {
+            config.calibres.splice(index, 1);
+            saveConfig();
+        }
+    }
+
+    function addFamilia() {
+        const name = document.getElementById('new-fam-name').value.trim().toUpperCase();
+        const thick = parseFloat(document.getElementById('new-fam-thick').value);
+        if(name && !isNaN(thick)) { 
+            config.familias.push({ n: name, t: thick }); 
+            document.getElementById('new-fam-name').value = '';
+            document.getElementById('new-fam-thick').value = '';
+            saveConfig(); 
+        }
+    }
+
+    function removeFamilia(index) {
+        if(confirm("¿Eliminar familia?")) {
+            config.familias.splice(index, 1);
+            saveConfig();
+        }
+    }
+
+    function saveConfig() { 
+        config.calibres.sort((a, b) => parseFloat(b) - parseFloat(a));
+        localStorage.setItem('coil_conf_v3', JSON.stringify(config)); 
+        render(); 
+    }
+
+    // --- INVENTARIO ---
     function agregar() {
         const c = document.getElementById('main-calibre').value;
         const f = document.getElementById('main-familia').value;
@@ -183,25 +247,107 @@
         render();
     }
 
+    function borrarRegistro(id) {
+        if(confirm("¿Eliminar este registro?")) { 
+            inventory = inventory.filter(i => i.id !== id); 
+            localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
+            render(); 
+        }
+    }
+
+    function limpiarTodo() {
+        if(confirm("⚠️ ¿ESTÁS SEGURO? Se borrará TODO el inventario acumulado.")) { 
+            inventory = []; 
+            localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
+            render(); 
+        }
+    }
+
     function render() {
         const calibresOrdenados = [...config.calibres].sort((a, b) => parseFloat(b) - parseFloat(a));
         
+        // Desplegables
         const selCal = document.getElementById('main-calibre');
         selCal.innerHTML = calibresOrdenados.map(c => `<option value="${c}">${c}</option>`).join('');
-        if(lastSelection.calibre) selCal.value = lastSelection.calibre;
+        if(lastSelection.calibre && config.calibres.includes(lastSelection.calibre)) selCal.value = lastSelection.calibre;
 
         const selFam = document.getElementById('main-familia');
         selFam.innerHTML = config.familias.map(f => `<option value="${f.n}">${f.n}</option>`).join('');
-        if(lastSelection.familia) selFam.value = lastSelection.familia;
+        if(lastSelection.familia && config.familias.some(f => f.n === lastSelection.familia)) selFam.value = lastSelection.familia;
 
         updatePreview();
-        // ... (resto de lógica de renderizado de lista similar a la v3)
+
+        // Lista Configuración
+        document.getElementById('list-calibres').innerHTML = calibresOrdenados.map(c => `
+            <div class="list-item-conf">
+                <span>${c}</span>
+                <button class="btn-delete-small" onclick="removeCalibre(${config.calibres.indexOf(c)})">✕</button>
+            </div>`).join('');
+
+        document.getElementById('list-familias').innerHTML = config.familias.map((f, i) => `
+            <div class="list-item-conf">
+                <span><b>${f.n}</b> (${f.t})</span>
+                <button class="btn-delete-small" onclick="removeFamilia(${i})">✕</button>
+            </div>`).join('');
+
+        // Tarjetas de Inventario
+        const container = document.getElementById('contenedorPrincipal');
+        container.innerHTML = "";
+
+        const grupos = inventory.reduce((acc, r) => {
+            if (!acc[r.calibre]) acc[r.calibre] = { peso: 0, items: [] };
+            acc[r.calibre].peso += r.qty;
+            acc[r.calibre].items.push(r);
+            return acc;
+        }, {});
+
+        Object.keys(grupos)
+            .sort((a, b) => parseFloat(b) - parseFloat(a))
+            .forEach(cal => {
+                const safeId = "group-" + cal.toString().replace(/\./g, '-');
+                const data = grupos[cal];
+                const div = document.createElement("div");
+                div.className = "inv-item";
+                div.id = safeId;
+                div.innerHTML = `
+                    <div class="inv-header" onclick="document.getElementById('${safeId}').classList.toggle('open')">
+                        <div><b>Ancho: ${cal}</b><div style="font-size:0.75rem;">${data.items.length} items</div></div>
+                        <span class="badge-total" style="background:var(--primary)">${data.peso.toFixed(2)} lbs</span>
+                    </div>
+                    <div class="inv-details">${data.items.map(r => `
+                        <div class="detail-row">
+                            <div class="detail-line"><b>${r.familia}</b> <b>${r.qty.toFixed(2)} lbs</b></div>
+                            <div class="detail-line" style="font-size:0.7rem; color:#666;">${r.tag}</div>
+                            <button class="btn-delete-row" onclick="event.stopPropagation(); borrarRegistro(${r.id})">✕</button>
+                        </div>`).join('')}</div>`;
+                container.appendChild(div);
+            });
     }
 
-    function showPage(id) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(id === 'page-main') render();
+    function descargarExcel() {
+        if (inventory.length === 0) return alert("Sin datos.");
+        const agrupado = inventory.reduce((acc, r) => {
+            const key = `${r.calibre}-${r.familia}-${r.thickness}`;
+            if (!acc[key]) acc[key] = { acero: r.calibre, familia: r.familia, thick: r.thickness, qty: 0 };
+            acc[key].qty += r.qty;
+            return acc;
+        }, {});
+
+        let ws_data = [
+            ["REPORTE DE INVENTARIO COIL", "", "", ""],
+            ["FECHA:", new Date().toLocaleDateString(), "", ""],
+            [],
+            ["ACERO", "FAMILIA", "Thickness", "CANTIDAD TOTAL (LBS)"]
+        ];
+
+        Object.values(agrupado).sort((a,b)=>parseFloat(b.acero)-parseFloat(a.acero)).forEach(i => {
+            ws_data.push([i.acero, i.familia, i.thick, i.qty.toFixed(2)]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+        XLSX.writeFile(wb, `Reporte_Inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
     window.onload = render;
