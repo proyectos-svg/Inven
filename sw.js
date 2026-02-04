@@ -1,20 +1,21 @@
-const CACHE_NAME = 'coil-pro-v1';
-const assets = ['./', './index.html'];
+const CACHE_NAME = 'coil-pro-v6';
+const ASSETS = [
+  './',
+  './index.html',
+  'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
+  'https://unpkg.com/html5-qrcode'
+];
 
-// Instalar el Service Worker
+// Instalar y guardar en caché
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(assets);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
 });
 
-// Escuchar peticiones
+// Responder desde caché o red
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(res => {
-      return res || fetch(e.request);
-    })
+    caches.match(e.request).then(res => res || fetch(e.request))
   );
 });
