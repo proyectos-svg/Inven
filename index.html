@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventario Coil Pro + QR v4</title>
+    <title>Inventario Coil Pro v6</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2897/2897832.png">
+
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     
@@ -14,33 +18,23 @@
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .app-card { background: white; width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; }
-        
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .page { display: none; width: 100%; }
         .page.active { display: block; }
-
         .field { margin-bottom: 12px; position: relative; }
         label { display: block; font-size: 0.7rem; font-weight: 800; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
         select, input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 16px; box-sizing: border-box; background: white; }
-
         .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-config { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
         .btn-delete-small { background: #fee2e2; color: #dc2626; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-
-        /* QR Scanner */
-        .btn-qr { position: absolute; right: 5px; top: 24px; background: #333; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; z-index: 5; }
         #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 15px; display: none; border: 2px solid var(--primary); }
-
-        /* Tarjetas de Inventario */
         .inv-item { background: var(--card); border-radius: 12px; margin-bottom: 8px; border: 1px solid #e5e7eb; overflow: hidden; }
         .inv-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .inv-details { max-height: 0; background: #f9fafb; overflow: hidden; transition: max-height 0.3s ease-out; }
         .inv-item.open .inv-details { max-height: 2000px; border-top: 1px solid #eee; }
-
         .detail-row { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; position: relative; padding-right: 50px; }
         .btn-delete-row { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #fee2e2; color: #dc2626; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; }
         .badge-total { color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; }
-        
         .config-section { background:#f8fafc; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid #e2e8f0; }
         .list-item-conf { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
     </style>
@@ -50,7 +44,7 @@
 <div class="app-card">
     <div id="page-main" class="page active">
         <header>
-            <h2 style="margin:0; font-size: 1.1rem;">📦 Inventario Coil</h2>
+            <h2 style="margin:0; font-size: 1.1rem;">📦 Inventario Coil Pro</h2>
             <button class="btn-config" onclick="showPage('page-config')">⚙️</button>
         </header>
 
@@ -68,15 +62,13 @@
         <div class="field">
             <label>Cantidad (Lbs)</label>
             <input type="number" id="main-qty" placeholder="0.00" inputmode="decimal">
-            <button class="btn-qr" onclick="toggleScanner()">📷 QR</button>
+            <button style="position:absolute; right:5px; top:24px; background:#333; color:white; border:none; padding:8px 12px; border-radius:8px;" onclick="toggleScanner()">📷 QR</button>
         </div>
         <button class="btn-main" onclick="agregar()">REGISTRAR MATERIAL</button>
 
         <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-        
         <div id="contenedorPrincipal"></div>
-
-        <button class="btn-main" onclick="limpiarTodo()" style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:20px; font-size:0.8rem; opacity:0.7;">🗑️ VACIAR TODO EL INVENTARIO</button>
+        <button class="btn-main" onclick="limpiarTodo()" style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:20px; font-size:0.8rem; opacity:0.7;">🗑️ VACIAR TODO</button>
     </div>
 
     <div id="page-config" class="page">
@@ -107,10 +99,22 @@
 </div>
 
 <script>
-    let config = JSON.parse(localStorage.getItem('coil_conf_v3')) || { calibres: ['13.400'], familias: [{n:'B23Q090', t:0.0091}] };
-    let inventory = JSON.parse(localStorage.getItem('coil_data_v3')) || [];
-    let lastSelection = JSON.parse(localStorage.getItem('coil_last_sel')) || { calibre: '', familia: '' };
+    let config = JSON.parse(localStorage.getItem('coil_conf_v4')) || { 
+        calibres: ['13.400'], 
+        familias: [{id: Date.now(), n:'B23Q090', t:0.0091}] 
+    };
+    let inventory = JSON.parse(localStorage.getItem('coil_data_v4')) || [];
+    let lastSelection = JSON.parse(localStorage.getItem('coil_last_sel')) || { calibre: '', familiaId: '' };
     let html5QrCode;
+
+    // REGISTRO DE SERVICE WORKER
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                console.log('SW registrado');
+            }).catch(err => console.log('SW error', err));
+        });
+    }
 
     function showPage(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -118,236 +122,141 @@
         render();
     }
 
-    // --- ESCANER QR ---
     function toggleScanner() {
         const readerDiv = document.getElementById('reader');
-        if (readerDiv.style.display === 'block') {
-            stopScanner();
-        } else {
+        if (readerDiv.style.display === 'block') { stopScanner(); } 
+        else {
             readerDiv.style.display = 'block';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess
-            ).catch(err => alert("Error de cámara: " + err));
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
         }
     }
 
     function onScanSuccess(decodedText) {
         try {
-            // Formato esperado: 13.4009999B23P090
             const acero = decodedText.substring(0, 6);
             const cantidad = decodedText.substring(6, 10);
-            const familia = decodedText.substring(10);
-
-            // Seleccionar o agregar calibre
-            if(!config.calibres.includes(acero)) {
-                config.calibres.push(acero);
-                saveConfig();
-            }
+            const familiaNombre = decodedText.substring(10);
+            if(!config.calibres.includes(acero)) { config.calibres.push(acero); saveConfig(); }
             document.getElementById('main-calibre').value = acero;
-
-            // Seleccionar familia si existe
-            const famObj = config.familias.find(f => f.n === familia);
-            if(famObj) {
-                document.getElementById('main-familia').value = familia;
-            } else {
-                alert(`La familia ${familia} no existe en configuración. Regístrala primero.`);
-            }
-
+            const famObj = config.familias.find(f => f.n === familiaNombre);
+            if(famObj) { document.getElementById('main-familia').value = famObj.id; } 
+            else { alert(`Familia ${familiaNombre} no configurada.`); }
             document.getElementById('main-qty').value = parseFloat(cantidad);
-            
-            saveLastSelection();
-            updatePreview();
-            stopScanner();
-        } catch (e) {
-            alert("Error procesando QR: Formato no reconocido.");
-        }
+            saveLastSelection(); updatePreview(); stopScanner();
+        } catch (e) { alert("Error de formato QR."); }
     }
 
     function stopScanner() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                document.getElementById('reader').style.display = 'none';
-            });
-        }
+        if (html5QrCode) { html5QrCode.stop().then(() => { document.getElementById('reader').style.display = 'none'; }); }
     }
 
-    // --- CONFIGURACIÓN ---
     function saveLastSelection() {
         lastSelection = {
             calibre: document.getElementById('main-calibre').value,
-            familia: document.getElementById('main-familia').value
+            familiaId: document.getElementById('main-familia').value
         };
         localStorage.setItem('coil_last_sel', JSON.stringify(lastSelection));
     }
 
     function updatePreview() {
         const c = document.getElementById('main-calibre').value;
-        const fName = document.getElementById('main-familia').value;
-        const fObj = config.familias.find(fam => fam.n === fName);
+        const fId = document.getElementById('main-familia').value;
+        const fObj = config.familias.find(fam => fam.id == fId);
         document.getElementById('preview').innerText = (fObj && c) ? `${fObj.t} x ${c} x COIL` : '-';
     }
 
     function addCalibre() {
         const val = document.getElementById('new-cal').value.trim();
-        if(val && !config.calibres.includes(val)) { 
-            config.calibres.push(val); 
-            document.getElementById('new-cal').value = ''; 
-            saveConfig(); 
-        }
-    }
-
-    function removeCalibre(index) {
-        if(confirm("¿Eliminar calibre?")) {
-            config.calibres.splice(index, 1);
-            saveConfig();
-        }
+        if(val && !config.calibres.includes(val)) { config.calibres.push(val); saveConfig(); }
     }
 
     function addFamilia() {
         const name = document.getElementById('new-fam-name').value.trim().toUpperCase();
         const thick = parseFloat(document.getElementById('new-fam-thick').value);
         if(name && !isNaN(thick)) { 
-            config.familias.push({ n: name, t: thick }); 
-            document.getElementById('new-fam-name').value = '';
-            document.getElementById('new-fam-thick').value = '';
+            config.familias.push({ id: Date.now(), n: name, t: thick }); 
             saveConfig(); 
         }
     }
 
-    function removeFamilia(index) {
-        if(confirm("¿Eliminar familia?")) {
-            config.familias.splice(index, 1);
-            saveConfig();
-        }
-    }
-
+    function removeCalibre(idx) { config.calibres.splice(idx, 1); saveConfig(); }
+    function removeFamilia(id) { config.familias = config.familias.filter(f => f.id !== id); saveConfig(); }
     function saveConfig() { 
-        config.calibres.sort((a, b) => parseFloat(b) - parseFloat(a));
-        localStorage.setItem('coil_conf_v3', JSON.stringify(config)); 
+        config.calibres.sort((a,b) => b-a); 
+        localStorage.setItem('coil_conf_v4', JSON.stringify(config)); 
         render(); 
     }
 
-    // --- INVENTARIO ---
     function agregar() {
         const c = document.getElementById('main-calibre').value;
-        const f = document.getElementById('main-familia').value;
+        const fId = document.getElementById('main-familia').value;
         const q = parseFloat(document.getElementById('main-qty').value);
-        const famObj = config.familias.find(fam => fam.n === f);
-        if(!c || !f || isNaN(q)) return alert("Datos incompletos");
-
-        inventory.unshift({ 
-            id: Date.now(), calibre: c, familia: f, 
-            thickness: famObj.t, tag: `${famObj.t} x ${c} x COIL`, qty: q 
-        });
-        localStorage.setItem('coil_data_v3', JSON.stringify(inventory));
-        document.getElementById('main-qty').value = "";
+        const fObj = config.familias.find(f => f.id == fId);
+        if(!c || !fObj || isNaN(q)) return alert("Faltan datos");
+        inventory.unshift({ id: Date.now(), calibre: c, familia: fObj.n, thickness: fObj.t, qty: q, familiaId: fObj.id });
+        localStorage.setItem('coil_data_v4', JSON.stringify(inventory));
         render();
     }
 
-    function borrarRegistro(id) {
-        if(confirm("¿Eliminar este registro?")) { 
-            inventory = inventory.filter(i => i.id !== id); 
-            localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
-            render(); 
-        }
-    }
-
-    function limpiarTodo() {
-        if(confirm("⚠️ ¿ESTÁS SEGURO? Se borrará TODO el inventario acumulado.")) { 
-            inventory = []; 
-            localStorage.setItem('coil_data_v3', JSON.stringify(inventory)); 
-            render(); 
-        }
-    }
+    function borrarRegistro(id) { inventory = inventory.filter(i => i.id !== id); localStorage.setItem('coil_data_v4', JSON.stringify(inventory)); render(); }
+    function limpiarTodo() { if(confirm("¿Borrar todo?")) { inventory = []; localStorage.setItem('coil_data_v4', JSON.stringify(inventory)); render(); } }
 
     function render() {
-        const calibresOrdenados = [...config.calibres].sort((a, b) => parseFloat(b) - parseFloat(a));
-        
-        // Desplegables
         const selCal = document.getElementById('main-calibre');
-        selCal.innerHTML = calibresOrdenados.map(c => `<option value="${c}">${c}</option>`).join('');
-        if(lastSelection.calibre && config.calibres.includes(lastSelection.calibre)) selCal.value = lastSelection.calibre;
-
+        selCal.innerHTML = config.calibres.map(c => `<option value="${c}">${c}</option>`).join('');
+        if(lastSelection.calibre) selCal.value = lastSelection.calibre;
         const selFam = document.getElementById('main-familia');
-        selFam.innerHTML = config.familias.map(f => `<option value="${f.n}">${f.n}</option>`).join('');
-        if(lastSelection.familia && config.familias.some(f => f.n === lastSelection.familia)) selFam.value = lastSelection.familia;
+        selFam.innerHTML = config.familias.map(f => `<option value="${f.id}">${f.n} (${f.t})</option>`).join('');
+        if(lastSelection.familiaId) selFam.value = lastSelection.familiaId;
 
-        updatePreview();
+        document.getElementById('list-calibres').innerHTML = config.calibres.map((c, i) => `<div class="list-item-conf"><span>${c}</span><button class="btn-delete-small" onclick="removeCalibre(${i})">✕</button></div>`).join('');
+        document.getElementById('list-familias').innerHTML = config.familias.map(f => `<div class="list-item-conf"><span><b>${f.n}</b> (${f.t})</span><button class="btn-delete-small" onclick="removeFamilia(${f.id})">✕</button></div>`).join('');
 
-        // Lista Configuración
-        document.getElementById('list-calibres').innerHTML = calibresOrdenados.map(c => `
-            <div class="list-item-conf">
-                <span>${c}</span>
-                <button class="btn-delete-small" onclick="removeCalibre(${config.calibres.indexOf(c)})">✕</button>
-            </div>`).join('');
-
-        document.getElementById('list-familias').innerHTML = config.familias.map((f, i) => `
-            <div class="list-item-conf">
-                <span><b>${f.n}</b> (${f.t})</span>
-                <button class="btn-delete-small" onclick="removeFamilia(${i})">✕</button>
-            </div>`).join('');
-
-        // Tarjetas de Inventario
         const container = document.getElementById('contenedorPrincipal');
         container.innerHTML = "";
-
         const grupos = inventory.reduce((acc, r) => {
             if (!acc[r.calibre]) acc[r.calibre] = { peso: 0, items: [] };
-            acc[r.calibre].peso += r.qty;
-            acc[r.calibre].items.push(r);
+            acc[r.calibre].peso += r.qty; acc[r.calibre].items.push(r);
             return acc;
         }, {});
 
-        Object.keys(grupos)
-            .sort((a, b) => parseFloat(b) - parseFloat(a))
-            .forEach(cal => {
-                const safeId = "group-" + cal.toString().replace(/\./g, '-');
-                const data = grupos[cal];
-                const div = document.createElement("div");
-                div.className = "inv-item";
-                div.id = safeId;
-                div.innerHTML = `
-                    <div class="inv-header" onclick="document.getElementById('${safeId}').classList.toggle('open')">
-                        <div><b>Ancho: ${cal}</b><div style="font-size:0.75rem;">${data.items.length} items</div></div>
-                        <span class="badge-total" style="background:var(--primary)">${data.peso.toFixed(2)} lbs</span>
-                    </div>
-                    <div class="inv-details">${data.items.map(r => `
-                        <div class="detail-row">
-                            <div class="detail-line"><b>${r.familia}</b> <b>${r.qty.toFixed(2)} lbs</b></div>
-                            <div class="detail-line" style="font-size:0.7rem; color:#666;">${r.tag}</div>
-                            <button class="btn-delete-row" onclick="event.stopPropagation(); borrarRegistro(${r.id})">✕</button>
-                        </div>`).join('')}</div>`;
-                container.appendChild(div);
-            });
+        Object.keys(grupos).sort((a,b)=>b-a).forEach(cal => {
+            const safeId = "group-" + cal.replace(/\./g, '-');
+            const data = grupos[cal];
+            const div = document.createElement("div");
+            div.className = "inv-item"; div.id = safeId;
+            div.innerHTML = `<div class="inv-header" onclick="document.getElementById('${safeId}').classList.toggle('open')"><div><b>Ancho: ${cal}</b></div><span class="badge-total" style="background:var(--primary)">${data.peso.toFixed(2)} lbs</span></div>
+            <div class="inv-details">${data.items.map(r => `<div class="detail-row"><div><b>${r.familia}</b> - ${r.qty.toFixed(2)} lbs</div><button class="btn-delete-row" onclick="borrarRegistro(${r.id})">✕</button></div>`).join('')}</div>`;
+            container.appendChild(div);
+        });
+        updatePreview();
     }
 
     function descargarExcel() {
-        if (inventory.length === 0) return alert("Sin datos.");
+        if (inventory.length === 0) return alert("Sin datos");
         const agrupado = inventory.reduce((acc, r) => {
-            const key = `${r.calibre}-${r.familia}-${r.thickness}`;
-            if (!acc[key]) acc[key] = { acero: r.calibre, familia: r.familia, thick: r.thickness, qty: 0 };
+            const key = `${r.calibre}-${r.familiaId}`;
+            if (!acc[key]) acc[key] = { ancho: r.calibre, familia: r.familia, thick: r.thickness, qty: 0 };
             acc[key].qty += r.qty;
             return acc;
         }, {});
-
-        let ws_data = [
-            ["REPORTE DE INVENTARIO COIL", "", "", ""],
-            ["FECHA:", new Date().toLocaleDateString(), "", ""],
-            [],
-            ["ACERO", "FAMILIA", "Thickness", "CANTIDAD TOTAL (LBS)"]
-        ];
-
-        Object.values(agrupado).sort((a,b)=>parseFloat(b.acero)-parseFloat(a.acero)).forEach(i => {
-            ws_data.push([i.acero, i.familia, i.thick, i.qty.toFixed(2)]);
-        });
-
+        let ws_data = [["REPORTE DE INVENTARIO COIL", "", "", ""], ["FECHA:", new Date().toLocaleDateString(), "", ""], [], ["ANCHO", "FAMILIA", "THICKNESS", "CANTIDAD TOTAL (LBS)"]];
+        Object.values(agrupado).sort((a,b)=>b.ancho - a.ancho).forEach(i => { ws_data.push([i.ancho, i.familia, i.thick, i.qty.toFixed(2)]); });
         const ws = XLSX.utils.aoa_to_sheet(ws_data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-        XLSX.writeFile(wb, `Reporte_Inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
+        ws['!merges'] = [{ s: {r:0, c:0}, e: {r:0, c:3} }];
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for(let R = 3; R <= range.e.r; ++R) {
+            for(let C = 0; C <= 3; ++C) {
+                let cell = ws[XLSX.utils.encode_cell({r:R, c:C})];
+                if(!cell) continue;
+                cell.s = { border: { top:{style:"thin"}, bottom:{style:"thin"}, left:{style:"thin"}, right:{style:"thin"} }, alignment:{horizontal:"center"} };
+                if(R === 3) { cell.s.font = {bold:true}; cell.s.fill = {fgColor:{rgb:"E5E7EB"}}; }
+            }
+        }
+        XLSX.writeFile(wb, `Inventario_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
     window.onload = render;
