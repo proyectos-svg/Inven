@@ -1,17 +1,22 @@
 {
   "name": "Inventario Coil Pro",
   "short_name": "CoilPro",
-  "description": "Sistema de gestión de inventario de acero con QR",
+  "description": "Gestión de inventario de acero",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f3f4f6",
+  "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2897/2897832.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/8728/8728099.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/128/8728/8728099.png",
+      "sizes": "128x128",
+      "type": "image/png"
     }
   ]
 }
