@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coil-pro-v6';
+const CACHE_NAME = 'Inventario-v6';
 const ASSETS = [
   './',
   './index.html',
