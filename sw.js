@@ -1,21 +1,22 @@
-const CACHE_NAME = 'Inventario-v6';
-const ASSETS = [
-  './',
-  './index.html',
-  'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
-  'https://unpkg.com/html5-qrcode'
-];
-
-// Instalar y guardar en caché
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
-});
-
-// Responder desde caché o red
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
-  );
-});
+{
+  "name": "Inventario v6",
+  "short_name": "Inventario",
+  "description": "Gestión de inventario de acero",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2640/2640795.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/128/2640/2640795.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}
