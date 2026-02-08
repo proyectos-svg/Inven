@@ -1,6 +1,6 @@
 {
   "name": "Inventario v6",
-  "short_name": "CoilPro",
+  "short_name": "Inventario",
   "description": "Gestión de inventario de acero",
   "start_url": "./index.html",
   "display": "standalone",
