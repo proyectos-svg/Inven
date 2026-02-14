@@ -1,17 +1,22 @@
-{
-  "name": "Inventario Coil HD",
-  "short_name": "CoilPro",
-  "description": "Sistema de inventario con escáner HD",
-  "start_url": "./Inventario.html",
-  "display": "standalone",
-  "background_color": "#f3f4f6",
-  "theme_color": "#2563eb",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2897/2897808.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
-}
+const CACHE_NAME = 'coil-pro-v7';
+const ASSETS = [
+  './Inventario.html',
+  'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
+  'https://unpkg.com/html5-qrcode'
+];
+
+// Instalación: Guardar archivos en memoria
+self.addEventListener('install', (evt) => {
+  evt.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
+  );
+});
+
+// Estrategia: Buscar en internet, si falla, usar caché
+self.addEventListener('fetch', (evt) => {
+  evt.respondWith(
+    fetch(evt.request).catch(() => caches.match(evt.request))
+  );
+});
