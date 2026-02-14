@@ -1,6 +1,6 @@
 {
-  "name": "Inventario Coil",
-  "short_name": "inventario",
+  "name": "Inventario Coil HD",
+  "short_name": "CoilPro",
   "description": "Sistema de inventario con escáner HD",
   "start_url": "./Inventario.html",
   "display": "standalone",
