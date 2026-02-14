@@ -109,47 +109,82 @@
 
     // --- FUNCIÓN DE CÁMARA HD MEJORADA ---
     async function toggleScanner() {
-        const readerDiv = document.getElementById('reader');
-        if (readerDiv.style.display === 'block') { 
-            stopScanner(); 
-        } else {
-            readerDiv.style.display = 'block';
-            html5QrCode = new Html5Qrcode("reader");
-            
-            const configScan = {
-                fps: 25,
-                qrbox: { width: 220, height: 220 },
-                aspectRatio: 1.0,
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { ideal: 1920 }, // Resolución HD
-                    height: { ideal: 1080 }
-                }
-            };
-
-            try {
-                await html5QrCode.start({ facingMode: "environment" }, configScan, onScanSuccess);
-                
-                // Ajustes de Hardware (Zoom y Flash)
-                const track = html5QrCode.getRunningTrack();
-                const capabilities = track.getCapabilities();
-                
-                // Aplicar Zoom automático para códigos pequeños
-                if (capabilities.zoom) {
-                    const zoomLevel = Math.min(2.5, capabilities.zoom.max);
-                    await track.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
-                }
-
-                // Habilitar botón de Flash si está disponible
-                if (capabilities.torch) {
-                    crearBotonFlash(track);
-                }
-            } catch (err) {
-                console.error("Error cámara:", err);
-                alert("Error al iniciar cámara HD. Asegúrate de dar permisos.");
+    const readerDiv = document.getElementById('reader');
+    if (readerDiv.style.display === 'block') { 
+        stopScanner(); 
+    } else {
+        readerDiv.style.display = 'block';
+        html5QrCode = new Html5Qrcode("reader");
+        
+        // Configuraciones de video más compatibles
+        const configScan = {
+            fps: 25,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.0,
+            videoConstraints: {
+                facingMode: "environment",
+                // Usamos rangos para evitar errores de "permiso/capacidad" en algunos móviles
+                width: { min: 640, ideal: 1920, max: 1920 },
+                height: { min: 480, ideal: 1080, max: 1080 }
             }
+        };
+
+        try {
+            // Iniciamos el escáner
+            await html5QrCode.start({ facingMode: "environment" }, configScan, onScanSuccess);
+            
+            // Damos un margen de 500ms para que el hardware se estabilice antes de pedir el Flash/Zoom
+            setTimeout(async () => {
+                try {
+                    const track = html5QrCode.getRunningTrack();
+                    const capabilities = track.getCapabilities();
+                    
+                    // Aplicar Zoom si existe
+                    if (capabilities.zoom) {
+                        const zoomLevel = Math.min(2.5, capabilities.zoom.max);
+                        await track.applyConstraints({ advanced: [{ zoom: zoomLevel }] });
+                    }
+
+                    // Forzar detección de Linterna (Torch)
+                    if (capabilities.torch || ('torch' in capabilities)) {
+                        crearBotonFlash(track);
+                    } else {
+                        console.warn("El dispositivo no reporta linterna disponible.");
+                    }
+                } catch (e) {
+                    console.error("Error al acceder a capacidades avanzadas:", e);
+                }
+            }, 500);
+
+        } catch (err) {
+            console.error("Error de cámara:", err);
+            alert("Error: Asegúrate de usar HTTPS y cerrar otras apps que usen la cámara.");
+            readerDiv.style.display = 'none';
         }
     }
+}
+
+function crearBotonFlash(track) {
+    if (document.getElementById('btn-flash-floating')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-flash-floating';
+    btn.innerHTML = "🔦 Luz";
+    // Estilo garantizado para ser visible
+    btn.style = "position:absolute; top:15px; right:15px; z-index:999; padding:12px 20px; background:#f59e0b; color:white; border:none; border-radius:10px; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
+    
+    btn.onclick = async () => {
+        try {
+            flashEnabled = !flashEnabled;
+            await track.applyConstraints({ advanced: [{ torch: flashEnabled }] });
+            btn.innerHTML = flashEnabled ? "🚫 Apagar" : "🔦 Luz";
+            btn.style.background = flashEnabled ? "#ef4444" : "#f59e0b";
+        } catch (err) {
+            alert("No se pudo activar la linterna en este navegador.");
+        }
+    };
+    document.getElementById('reader').appendChild(btn);
+}
+
 
     function crearBotonFlash(track) {
         if (document.getElementById('btn-flash-floating')) return;
