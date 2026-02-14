@@ -1,6 +1,6 @@
 const CACHE_NAME = 'coil-pro-v7';
 const ASSETS = [
-  './index.html',
+  './Inventario.html',
   'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
   'https://unpkg.com/html5-qrcode'
 ];
